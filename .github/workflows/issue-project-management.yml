@@ -7,6 +7,16 @@ on:
     types: [created, moved]
 
 jobs:
+  add_to_project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add issue to project
+        if: github.event.action == 'opened'
+        uses: actions/add-to-project@v0.5.0
+        with:
+          project-url: https://github.com/users/t012093/projects/2
+          github-token: ${{ secrets.KEY }}
+
   manage_issue_status:
     runs-on: ubuntu-latest
     permissions:
@@ -17,8 +27,8 @@ jobs:
         if: github.event_name == 'issues' && github.event.action == 'opened'
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.KEY }}
           script: |
-            // バックログラベルを追加
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -30,8 +40,8 @@ jobs:
         if: github.event_name == 'issues' && github.event.action == 'assigned'
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.KEY }}
           script: |
-            // バックログラベルを削除
             try {
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -43,7 +53,6 @@ jobs:
               console.log('backlog label not found');
             }
             
-            // 進行中ラベルを追加
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -55,8 +64,8 @@ jobs:
         if: github.event_name == 'issues' && github.event.action == 'closed'
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.KEY }}
           script: |
-            // 進行中ラベルを削除
             try {
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -68,7 +77,6 @@ jobs:
               console.log('inprogress label not found');
             }
             
-            // バックログラベルを削除
             try {
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -80,7 +88,6 @@ jobs:
               console.log('backlog label not found');
             }
             
-            // 完了ラベルを追加
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -98,6 +105,7 @@ jobs:
         if: github.event_name == 'project_card' && github.event.action == 'moved'
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.KEY }}
           script: |
             const columnName = context.payload.project_card.column_name.toLowerCase();
             const issueUrl = context.payload.project_card.content_url;
@@ -106,7 +114,6 @@ jobs:
             
             const issueNumber = issueUrl.split('/').pop();
             
-            // カラム名に基づいてラベルを更新
             switch (columnName) {
               case 'backlog':
                 await github.rest.issues.setLabels({
@@ -132,7 +139,6 @@ jobs:
                   labels: ['done']
                 });
                 
-                // 完了カラムに移動した場合、Issueをクローズ
                 await github.rest.issues.update({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
