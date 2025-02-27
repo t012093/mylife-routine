@@ -1,0 +1,143 @@
+name: Issue Project Management
+
+on:
+  issues:
+    types: [opened, assigned, closed]
+  project_card:
+    types: [created, moved]
+
+jobs:
+  manage_issue_status:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      repository-projects: write
+    steps:
+      - name: Add to Backlog
+        if: github.event_name == 'issues' && github.event.action == 'opened'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // バックログラベルを追加
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['backlog']
+            });
+
+      - name: Move to In Progress
+        if: github.event_name == 'issues' && github.event.action == 'assigned'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // バックログラベルを削除
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'backlog'
+              });
+            } catch (e) {
+              console.log('backlog label not found');
+            }
+            
+            // 進行中ラベルを追加
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['inprogress']
+            });
+
+      - name: Move to Done
+        if: github.event_name == 'issues' && github.event.action == 'closed'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // 進行中ラベルを削除
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'inprogress'
+              });
+            } catch (e) {
+              console.log('inprogress label not found');
+            }
+            
+            // バックログラベルを削除
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'backlog'
+              });
+            } catch (e) {
+              console.log('backlog label not found');
+            }
+            
+            // 完了ラベルを追加
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['done']
+            });
+
+  sync_with_project:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      repository-projects: write
+    steps:
+      - name: Sync Project Status
+        if: github.event_name == 'project_card' && github.event.action == 'moved'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const columnName = context.payload.project_card.column_name.toLowerCase();
+            const issueUrl = context.payload.project_card.content_url;
+            
+            if (!issueUrl) return;
+            
+            const issueNumber = issueUrl.split('/').pop();
+            
+            // カラム名に基づいてラベルを更新
+            switch (columnName) {
+              case 'backlog':
+                await github.rest.issues.setLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  labels: ['backlog']
+                });
+                break;
+              case 'in progress':
+                await github.rest.issues.setLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  labels: ['inprogress']
+                });
+                break;
+              case 'done':
+                await github.rest.issues.setLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  labels: ['done']
+                });
+                
+                // 完了カラムに移動した場合、Issueをクローズ
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  state: 'closed'
+                });
+                break;
+            }
