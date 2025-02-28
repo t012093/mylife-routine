@@ -1,135 +1,220 @@
-# MyLife タスク管理システム
+# GitHub Projects Task Management Template
 
-このシステムは、GitHub ProjectsとGitHub Actionsを使用して、生活のさまざまな側面のタスクを効率的に管理するためのフレームワークです。
+このテンプレートは、GitHub ProjectsとGitHub Actionsを活用した効率的なタスク管理システムを提供します。
 
-## システム概要
+## 🌟 主な機能
 
-> **Note**: 単一リポジトリでの管理方法については[こちらのガイド](docs/single-repo-guide.md)を参照してください。
+- issueの自動ラベル付け
+- プロジェクトへの自動追加
+- ステータスの自動更新
+- プライオリティの自動設定
 
-### リポジトリ構成
+## 🚀 セットアップ手順
 
-現在、タスクは3つの専用リポジトリに分けて管理されています：
+### 1. リポジトリの準備
 
-1. [mylife-work](https://github.com/t012093/mylife-work)
-   - 仕事関連のタスク管理
-   - ミーティングノート
-   - プロジェクト進捗管理
+1. このテンプレートをベースに新しいリポジトリを作成
+2. リポジトリの Settings > Actions > General で以下を有効化：
+   - `Allow all actions and reusable workflows`
+   - `Read and write permissions` in Workflow permissions
 
-2. [mylife-routine](https://github.com/t012093/mylife-routine)
-   - 日常的なルーティンタスク
-   - 習慣化したい活動
-   - 健康・運動の記録
+### 2. GitHub Projectsの設定
 
-3. [mylife-dev](https://github.com/t012093/mylife-dev)
-   - 開発プロジェクト
-   - 技術検証タスク
-   - インフラ整備
+1. リポジトリの Projects タブから新規プロジェクトを作成
+2. 以下のカスタムフィールドを追加：
+   - Status（単一選択）
+     - Backlog
+     - In Progress
+     - Done
+   - Priority（単一選択）
+     - Daily
+     - Weekly
+     - Monthly
 
-### 自動化機能
+### 3. 環境変数の設定
 
-1. プロジェクト連携
-   - Issue作成時に自動的にプロジェクトボードに追加
-   - ステータスに応じて自動的に列を移動
-   - プロジェクトボードとIssueの状態を常に同期
+1. GitHub上でプロジェクトの作成
+   1. リポジトリの`Projects`タブを開く
+   2. `New project`をクリック
+   3. `Board`テンプレートを選択
+   4. プロジェクト名を入力して作成
 
-2. ラベル管理
-   - `backlog`: 未着手のタスク
-   - `inprogress`: 作業中のタスク
-   - `done`: 完了したタスク
+2. カスタムフィールドの追加
+   1. プロジェクトの`Settings`を開く（歯車アイコン）
+   2. `Custom fields`セクションで以下を追加：
+      - `Status`（単一選択）
+        - `Backlog`
+        - `In Progress`
+        - `Done`
+      - `Priority`（単一選択）
+        - `Daily`
+        - `Weekly`
+        - `Monthly`
 
-## セットアップ手順
+3. シークレット変数の設定
 
-1. 必要なリポジトリの作成
+   1. リポジトリの`Settings` > `Secrets and variables` > `Actions`を開く
+   2. `New repository secret`で以下を設定：
+
+   | シークレット名 | 設定値の例 | 説明 |
+   |-------------|------------|-----|
+   | `PROJECT_ID` | `1` | プロジェクトのURL末尾の数字<br>例：`https://github.com/users/username/projects/1` → `1` |
+   | `PROJECT_STATUS_FIELD` | `PVTSSF_lADOBJe6u85pcgJK6VI` | Status列のID |
+   | `PROJECT_PRIORITY_FIELD` | `PVTSSF_lADOBJe6u85pcgJK6Vb` | Priority列のID |
+   | `STATUS_OPTION_BACKLOG` | `47fc9ee4` | Backlogオプションの値 |
+   | `STATUS_OPTION_IN_PROGRESS` | `47fc9ee5` | In Progressオプションの値 |
+   | `STATUS_OPTION_DONE` | `47fc9ee6` | Doneオプションの値 |
+   | `PRIORITY_OPTION_DAILY` | `47fc9ee7` | Dailyオプションの値 |
+   | `PRIORITY_OPTION_WEEKLY` | `47fc9ee8` | Weeklyオプションの値 |
+   | `PRIORITY_OPTION_MONTHLY` | `47fc9ee9` | Monthlyオプションの値 |
+
+   **具体的な設定手順：**
+   1. `New repository secret`ボタンをクリック
+   2. Name欄に「PROJECT_ID」など、上記の シークレット名 を入力
+   3. Value欄に対応する値を入力
+   4. `Add secret`ボタンをクリック
+   5. 他のシークレットも同様に追加
+
+   **最小限の設定でテストする場合：**
+   1. まずは`PROJECT_ID`だけを設定
+   ```
+   Name: PROJECT_ID
+   Value: 1  # プロジェクトのURL末尾の数字
+   ```
+   2. 基本機能を確認後、他のIDを順次追加
+
+4. フィールドIDとオプションIDの取得
+   1. ブラウザの開発者ツールを開く（F12）
+   2. `Network`タブを選択
+   3. プロジェクトページでフィールドを操作（値を変更など）
+   4. GraphQLリクエストを確認し、IDを特定
+
+   または、以下のスクリプトでも取得可能：
    ```bash
-   gh repo create mylife-work --public
-   gh repo create mylife-routine --public
-   gh repo create mylife-dev --public
+   gh api graphql -f query='
+   query{
+     viewer {
+       projectV2(number: プロジェクト番号) {
+         id
+         fields(first: 20) {
+           nodes {
+             ... on ProjectV2SingleSelectField {
+               id
+               name
+               options {
+                 id
+                 name
+               }
+             }
+           }
+         }
+       }
+     }
+   }
+   '
    ```
 
-2. GitHub Personal Access Token(PAT)の生成
-   - GitHub Settings > Developer settings > Personal access tokens
-   - 必要な権限: `repo` スコープ
+## 🔧 カスタマイズ
 
-3. シークレットの設定
-   - 各リポジトリのSettings > Secrets
-   - `KEY`という名前でPATを登録
+### ラベルの設定
 
-4. プロジェクトボードの作成
-   - プロジェクト名: `MyLife Task Management`
-   - 以下の列を作成:
-     - `Backlog`
-     - `In Progress`
-     - `Done`
+1. 以下のラベルを作成:
+   - `work`: 仕事関連タスク（色: #0366d6）
+   - `routine`: 日常的なルーティン（色: #d4c5f9）
+   - `engineering`: 開発関連タスク（色: #fbca04）
 
-5. ワークフローファイルの設定
-   - `.github/workflows/`ディレクトリに`issue-project-management.yml`を配置
-   - プロジェクトURLを正しく設定
-
-## 使用方法
-
-詳細な使用方法とベストプラクティスは[Issue作成ガイド](docs/issue-guide.md)を参照してください。
-
-### 1. タスクの作成
 ```bash
-# 例：ルーティンタスクの作成
-gh issue create --title "朝の運動" --body "## 目標
-- [ ] ストレッチ
-- [ ] 軽いジョギング
-- [ ] 深呼吸"
+gh label create work --color 0366d6 --description "仕事関連タスク"
+gh label create routine --color d4c5f9 --description "日常的なルーティン"
+gh label create engineering --color fbca04 --description "開発関連タスク"
 ```
 
-### 2. タスクの進行管理
-- Issue作成時：
-  - 自動的にプロジェクトボードの`Backlog`列に追加
-  - `backlog`ラベルが付与
+### ワークフローのカスタマイズ
 
-- 作業開始時：
-  - 担当者をアサイン
-  - 自動的に`In Progress`列に移動
-  - `inprogress`ラベルに更新
+`.github/workflows/issue-automation.yml`の設定を必要に応じて変更できます：
 
-- タスク完了時：
-  - Issueをクローズ
-  - 自動的に`Done`列に移動
-  - `done`ラベルに更新
+- トリガーとなるイベントの追加/削除
+- ラベルの種類の変更
+- ステータス遷移ルールの変更
 
-### 3. プロジェクトボードの活用
-- カンバン方式でタスクを視覚的に管理
-- ドラッグ＆ドロップで状態を更新
-- フィルターやソートで必要なタスクを素早く確認
+## 📝 使用方法
 
-## ベストプラクティス
+### 手動でのissue作成
 
-1. タスクの分類
-   - 仕事関連 → mylife-work
-   - 日常ルーティン → mylife-routine
-   - 開発タスク → mylife-dev
+1. issueの作成
+   - テンプレートに従ってissueを作成
+   - プライオリティを選択（Daily/Weekly/Monthly）
 
-2. Issue作成時のポイント
-   - 具体的なタイトル
-   - チェックリスト形式での目標設定
-   - 期限や目標時間の明記
+2. 自動化の確認
+   - issue作成時に自動でラベルが付与
+   - プロジェクトに自動で追加
+   - ステータスが自動で更新
 
-3. プロジェクト管理
-   - 定期的なバックログの整理
-   - 完了したタスクの振り返り
-   - ラベルを活用した優先度付け
+### ルーティンタスクの自動作成
 
-## カスタマイズ
+定期的なissue作成を自動化する機能を提供しています：
 
-必要に応じて以下の要素をカスタマイズできます：
+1. ルーティン設定ファイル
+`settings/routines.yml`でタスクを定義：
+```yaml
+daily:
+  - title: "⚡ 日報作成"
+    body: |
+      ## 目的
+      - タスクの目的
+      
+      ## 作業項目
+      - [ ] 作業1
+      - [ ] 作業2
+    labels:
+      - routine
+      - priority:daily
 
-1. ラベル
-   - 優先度（high, medium, low）
-   - カテゴリー（meeting, document, coding）
-   - ステータス（waiting, blocked, review）
+weekly:
+  - title: "⚡ 週次タスク"
+    body: |
+      ## 作業項目
+      - [ ] タスク1
+    labels:
+      - routine
+      - priority:weekly
+    condition: monday  # 月曜日に実行
 
-2. プロジェクトビュー
-   - カンバンボード
-   - ガントチャート
-   - カレンダービュー
+monthly:
+  - title: "⚡ 月次タスク"
+    body: |
+      ## 作業項目
+      - [ ] タスク1
+    labels:
+      - routine
+      - priority:monthly
+    condition: first-day  # 毎月1日に実行
+```
 
-3. 自動化ルール
-   - ステータス変更条件
-   - ラベル付与ルール
-   - 通知設定
+2. 実行タイミング
+   - 毎日のタスク：毎日午前9時に自動作成
+   - 週次タスク：`condition: monday`指定で月曜日に作成
+   - 月次タスク：`condition: first-day`指定で毎月1日に作成
+
+3. カスタマイズ方法
+   - YAMLファイルに新しいタスクを追加
+   - 各タスクに対して以下を設定可能：
+     - `title`: タスクのタイトル
+     - `body`: タスクの詳細（Markdown形式）
+     - `labels`: 付与するラベル
+     - `condition`: 作成条件（monday/first-day）
+
+4. 手動実行
+   - GitHub Actionsから`Create Routine Issues`ワークフローを手動実行可能
+   - 特定のカテゴリ（daily/weekly/monthly）のみを選択して実行可能
+
+## 🤝 コントリビューション
+
+1. このリポジトリをフォーク
+2. 機能追加用のブランチを作成
+3. 変更をコミット
+4. プルリクエストを作成
+
+## ⚖️ ライセンス
+
+MITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。

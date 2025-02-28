@@ -1,18 +1,31 @@
-name: タスク
+name: タスク作成
 description: 新しいタスクを作成
-title: "[Task]: "
-labels: ["backlog"]
+title: "⚡ "
+labels: []
 body:
-  - type: markdown
+  - type: dropdown
+    id: category
     attributes:
-      value: "## 新しいタスクの作成"
+      label: カテゴリ
+      description: タスクのカテゴリを選択してください
+      options:
+        - work（仕事関連）
+        - routine（日常的なルーティン）
+        - engineering（開発関連）
+    validations:
+      required: true
 
   - type: textarea
-    id: description
+    id: overview
     attributes:
-      label: タスクの説明
-      description: タスクの詳細を記述してください
-      placeholder: タスクの内容を具体的に記述してください
+      label: 概要
+      description: タスクの目的と概要を記述してください
+      placeholder: |
+        ## 目的
+        - このタスクで達成したいこと
+        
+        ## 背景
+        - タスクの背景や課題
     validations:
       required: true
 
@@ -22,18 +35,57 @@ body:
       label: 優先度
       description: タスクの優先度を選択してください
       options:
-        - Daily（毎日対応）
-        - Weekly（週次対応）
+        - 🔥 Daily（毎日対応）
+        - 📅 Weekly（週次対応）
+        - 📆 Monthly（月次対応）
     validations:
       required: true
 
-  - type: checkboxes
+  - type: textarea
     id: tasks
     attributes:
-      label: タスクチェックリスト
-      description: 必要なタスクにチェックを入れてください
-      options:
-        - label: 実装
-        - label: テスト
-        - label: ドキュメント
-        - label: レビュー
+      label: タスク内容
+      description: 具体的な作業内容を記述してください
+      placeholder: |
+        ## 作業項目
+        - [ ] タスク1
+        - [ ] タスク2
+        - [ ] タスク3
+        
+        ## 注意点
+        - 実施時の注意事項
+        - 確認項目など
+
+  - type: textarea
+    id: completion_criteria
+    attributes:
+      label: 完了条件
+      description: タスクが完了したと判断できる基準を記述してください
+      placeholder: |
+        ## 必須要件
+        - [ ] 要件1
+        - [ ] 要件2
+        
+        ## 受け入れ基準
+        - [ ] 基準1
+        - [ ] 基準2
+
+  - type: textarea
+    id: timeline
+    attributes:
+      label: タイムライン
+      description: 作業の予定期間を記述してください
+      placeholder: |
+        1. 準備フェーズ: X日
+        2. 実行フェーズ: X日
+        3. 確認フェーズ: X日
+
+  - type: textarea
+    id: references
+    attributes:
+      label: 参考資料
+      description: 関連するドキュメントやリソースへのリンクを記載してください
+      placeholder: |
+        - 📚 [関連ドキュメント]()
+        - 🔗 [参考サイト]()
+        - 📋 [関連issue]()
