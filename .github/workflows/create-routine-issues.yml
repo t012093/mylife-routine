@@ -1,0 +1,113 @@
+name: "Create Routine Issues"
+on:
+  schedule:
+    # 毎日午前9時に実行 (UTC 0:00, JST 9:00)
+    - cron: '0 0 * * *'
+  # 手動実行用のトリガー
+  workflow_dispatch:
+    inputs:
+      template:
+        description: 'テンプレート名を選択（daily/weekly/monthly）'
+        required: true
+        type: choice
+        options:
+          - daily
+          - weekly
+          - monthly
+        default: 'daily'
+
+jobs:
+  create-routine-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Load routine settings
+        id: load-routines
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const yaml = require('yaml');
+            
+            const routinesFile = fs.readFileSync('./settings/routines.yml', 'utf8');
+            const routines = yaml.parse(routinesFile);
+            
+            return routines;
+
+      - name: Create routine issues
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // 0 (日曜) から 6 (土曜)
+            const date = today.getDate(); // 1-31
+
+            // 条件判定関数
+            const checkCondition = (condition) => {
+              switch (condition) {
+                case 'monday':
+                  return dayOfWeek === 1;
+                case 'first-day':
+                  return date === 1;
+                case undefined:
+                  return true;
+                default:
+                  return false;
+              }
+            };
+
+            // ルーティン設定を取得
+            const routines = JSON.parse(steps.load-routines.outputs.result);
+
+            // 手動実行の場合は指定されたテンプレートのみ実行
+            const templateType = context.payload.inputs?.template;
+            const templatesToRun = templateType 
+              ? [templateType]
+              : ['daily', 'weekly', 'monthly'];
+
+            for (const type of templatesToRun) {
+              const tasks = routines[type] || [];
+              for (const task of tasks) {
+                // スケジュール条件をチェック
+                if (!checkCondition(task.condition)) continue;
+
+                try {
+                  // Issueの作成
+                  const response = await github.rest.issues.create({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    title: task.title,
+                    body: task.body,
+                    labels: task.labels
+                  });
+
+                  // プロジェクトへの追加
+                  if (response.data) {
+                    const mutation = `
+                      mutation($projectId: ID!, $contentId: ID!) {
+                        addProjectV2ItemById(input: {
+                          projectId: $projectId
+                          contentId: $contentId
+                        }) {
+                          item {
+                            id
+                          }
+                        }
+                      }
+                    `;
+                    
+                    await github.graphql(mutation, {
+                      projectId: process.env.PROJECT_ID,
+                      contentId: response.data.node_id
+                    });
+                  }
+                } catch (error) {
+                  console.error(`Error creating ${type} task:`, error);
+                }
+              }
+            }
