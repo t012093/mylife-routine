@@ -45,9 +45,11 @@ jobs:
             const routinesFile = fs.readFileSync('./settings/routines.yml', 'utf8');
             const routines = yaml.parse(routinesFile);
             
-            return routines;
+            core.setOutput('routines', JSON.stringify(routines));
 
       - name: Create routine issues
+        env:
+          ROUTINES: ${{ steps.load-routines.outputs.routines }}
         uses: actions/github-script@v6
         with:
           script: |
@@ -70,7 +72,7 @@ jobs:
             };
 
             // ルーティン設定を取得
-            const routines = JSON.parse(steps.load-routines.outputs.result);
+            const routines = JSON.parse(process.env.ROUTINES);
 
             // 手動実行の場合は指定されたテンプレートのみ実行
             const templateType = context.payload.inputs?.template;
