@@ -21,7 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      contents: read
+      contents: write
+      repository-projects: write
+      actions: write
+      id-token: write
+      pages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -38,6 +42,7 @@ jobs:
         id: load-routines
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.KEY }}
           script: |
             const fs = require('fs');
             const yaml = require('yaml');
@@ -52,6 +57,7 @@ jobs:
           ROUTINES: ${{ steps.load-routines.outputs.routines }}
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.KEY }}
           script: |
             const today = new Date();
             const dayOfWeek = today.getDay(); // 0 (日曜) から 6 (土曜)
