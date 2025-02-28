@@ -112,7 +112,7 @@ jobs:
                     `;
                     
                     await github.graphql(mutation, {
-                      projectId: process.env.PROJECT_ID,
+                      projectId: "${{ secrets.PROJECT_ID }}",
                       contentId: response.data.node_id
                     });
                   }
