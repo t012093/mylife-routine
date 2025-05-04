@@ -1,6 +1,6 @@
 # GitHub Projects Task Management Template
 
-このテンプレートは、GitHub ProjectsとGitHub Actionsを活用した効率的なタスク管理システムを提供します。
+✅ このテンプレートは、GitHub ProjectsとGitHub Actionsを活用した効率的なタスク管理システムを提供します。
 
 ## 🌟 主な機能
 
